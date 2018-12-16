@@ -95,41 +95,69 @@ def NNSolver(x0,L,Nx,t0,t1,Nt):
 
     G_analytic = g_analytic.reshape((Nt, Nx))
     G_dnn = g_dnn.reshape((Nt, Nx))
-    np.savetxt('NN.txt', G_dnn, delimiter=',')
-    print(G_dnn)
+    np.save('NN.npy', G_dnn)
+    #print(G_dnn)
     diff = np.abs(G_analytic - G_dnn)
 
     # Plots results
     XX, TT = np.meshgrid(x_np, t_np)
 
-    #fig = plt.figure(figsize=(10, 10))
-    #ax = fig.gca(projection="3d")
+    return G_dnn, XX, TT, diff, G_analytic
+
+def MakePlots(XX, TT, G_dnn, G_analytic, G_explicit, diffNNanalytic, diffNNexplicit, diffExplicitAnalytic):
+    """ Plotting function for test purposes. Normally results are saved as np-arrays and can be used by 
+        a dedicated ploting script in the results folder. 
+    """
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.gca(projection="3d")
     #ax.set_title("Solution from the deep neural network w/ %d layer" %
     #             len(num_hidden_neurons))
-    #s = ax.plot_surface(XX, TT, G_dnn, linewidth=0,
-    #                    antialiased=False, cmap=cm.viridis)
-    #ax.set_xlabel("Time $t$")
-    #ax.set_ylabel("Position $x$")
-    #fig = plt.figure(figsize=(10, 10))
-    #ax = fig.gca(projection="3d")
+    ax.set_title("a")
+    s = ax.plot_surface(XX, TT, G_dnn, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
+    fig = plt.figure(figsize=(10, 10))
+
+    ax = fig.gca(projection="3d")
     #ax.set_title("Analytical solution")
-    #s = ax.plot_surface(XX, TT, G_analytic, linewidth=0,
-    #                    antialiased=False, cmap=cm.viridis)
-    #ax.set_xlabel("Time $t$")
-    #ax.set_ylabel("Position $x$")
-    #fig = plt.figure(figsize=(10, 10))
-    #ax = fig.gca(projection="3d")
-    #ax.set_title("Difference")
-    #s = ax.plot_surface(XX, TT, diff, linewidth=0,
-    #                    antialiased=False, cmap=cm.viridis)
-    #ax.set_xlabel("Time $t$")
-    #ax.set_ylabel("Position $x$")
-    #plt.show()
-    return G_dnn, XX, TT
+    ax.set_title("b")
+    s = ax.plot_surface(XX, TT, G_analytic, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
+    fig = plt.figure(figsize=(10, 10))
 
-def task_d():
-    pass
+    ax = fig.gca(projection="3d")
+    #ax.set_title("Explicit")
+    ax.set_title("c")
+    s = ax.plot_surface(XX, TT, G_explicit, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
 
+    ax = fig.gca(projection="3d")
+    ax.set_title("d")# NN - excact diff
+    s = ax.plot_surface(XX, TT, diffNNanalytic, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
+
+    ax = fig.gca(projection="3d")
+    ax.set_title("e")# NN - euler diff
+    s = ax.plot_surface(XX, TT, diffNNexplicit, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
+
+    ax = fig.gca(projection="3d")
+    ax.set_title("f") # Explicit exact diff
+    s = ax.plot_surface(XX, TT, diffExplicitAnalytic, linewidth=0,
+                        antialiased=False, cmap=cm.viridis)
+    ax.set_ylabel("Time $t$")
+    ax.set_xlabel("Position $x$")
+    plt.show()
 
 def main():
     # boundary conditions
@@ -144,8 +172,7 @@ def main():
     # time discretization
     Nt = 200
  
-    G_dnn, XX, TT = NNSolver(x0,L,Nx,t0,t1,Nt)
-    # task_d()
+    G_dnn, XX, TT, diffNNanalytic, G_analytic = NNSolver(x0,L,Nx,t0,t1,Nt)
 ###################################################
     # Number of integration points along x-axis
     #N       =   10
@@ -171,22 +198,23 @@ def main():
     u[0,0] = u[0,Nx-1] = 0.0 #Implement boundaries rigidly
     ExplicitSolver(alpha,u,Nx-2,Nt)
     #print(u)
-    np.savetxt('euler.txt', u, delimiter=',')
+    np.save('euler.npy', u)
 
 
-    diff = np.abs(u - G_dnn)
-    print("diff ", diff)
-    # Plots results
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.gca(projection="3d")
-    ax.set_title("Difference")
-    s = ax.plot_surface(XX, TT, diff, linewidth=0,
-                        antialiased=False, cmap=cm.viridis)
-    ax.set_xlabel("Time $t$")
-    ax.set_ylabel("Position $x$")
-    plt.show()
- 
+    diffNNexplicit = np.abs(u - G_dnn)
+    diffExplicitAnalytic = np.abs(u - G_analytic) 
 
+
+    np.save('XX.npy', XX)
+    np.save('TT.npy', TT)
+    np.save('analytic.npy', G_analytic)
+    np.save('diffNNanalytic.npy', diffNNanalytic)
+    np.save('diffNNexplicit.npy', diffNNexplicit)
+    np.save('diffExplicitAnalytic.npy', diffExplicitAnalytic)
+
+
+    #MakePlots(XX, TT, G_dnn, G_analytic, u, diffNNanalytic, diffNNexplicit, diffExplicitAnalytic)
+    
 if __name__ == '__main__':
     main()
 
