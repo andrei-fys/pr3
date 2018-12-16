@@ -5,14 +5,15 @@ from tqdm import tqdm, trange
 from matplotlib import cm
 from mpl_toolkits.mplot3d import axes3d
 from diffusion_explicit_FE import ExplicitSolver,g
+import time
+from sklearn.metrics import r2_score, mean_squared_error
 
-
-def NNSolver(x0,L,Nx,t0,t1,Nt):
+def NNSolver(x0,L,Nx,t0,t1,Nt,fileindex,num_hid_lay):
     """NN solution of the 1+1-dimentional 
        diffusion problem. Code inspired by 
        the example taken from lecture notes and 
        discussion with M. Vege"""
-
+    tf.reset_default_graph()
     x_np = np.linspace(x0, L, Nx)
     t_np = np.linspace(t0, t1, Nt)
     #print(t_np)
@@ -29,7 +30,8 @@ def NNSolver(x0,L,Nx,t0,t1,Nt):
     points = tf.concat([x, t], 1)
 
     num_iter = 100000
-    num_hidden_neurons = [90]
+    #num_hidden_neurons = [90]
+    num_hidden_neurons = num_hid_lay
 
     X = tf.convert_to_tensor(X)
     T = tf.convert_to_tensor(T)
@@ -77,6 +79,7 @@ def NNSolver(x0,L,Nx,t0,t1,Nt):
     g_dnn = None
 
     # Execution phase
+    start = time.time()
     with tf.Session() as sess:
         init.run()
         for i in trange(num_iter, desc="Training dnn"):
@@ -87,15 +90,29 @@ def NNSolver(x0,L,Nx,t0,t1,Nt):
 
         g_analytic = g_analytic.eval()
         g_dnn = g_trial.eval()
+        # cost evaluation
+        cost = loss.eval()
 
-
+    finish = time.time()
     # Compare nn solution with analytical solution
     difference = np.abs(g_analytic - g_dnn)
-    print("Max absolute difference: ", np.max(difference))
+    max_diff = np.max(difference)
+    #print("Max absolute difference: ", np.max(difference))
+    if np.any(np.isnan(g_dnn)):
+        r2 = -1
+        mse = -1
+    else:
+        r2 = r2_score(g_analytic, g_dnn)
+        mse = mean_squared_error(g_analytic, g_dnn)
 
+    duration = finish - start
+
+    outfile = open(str(fileindex)+"-st_run.txt",'w')
+    np.savetxt(outfile, np.c_[mse,r2,max_diff,duration], fmt='%10.20f', delimiter=',')
+    outfile.close()
     G_analytic = g_analytic.reshape((Nt, Nx))
     G_dnn = g_dnn.reshape((Nt, Nx))
-    np.save('NN.npy', G_dnn)
+    #np.save('NN.npy', G_dnn)
     #print(G_dnn)
     diff = np.abs(G_analytic - G_dnn)
 
@@ -170,9 +187,27 @@ def main():
     # spatial dimention discretization
     Nx = 12
     # time discretization
-    Nt = 200
- 
-    G_dnn, XX, TT, diffNNanalytic, G_analytic = NNSolver(x0,L,Nx,t0,t1,Nt)
+    Nt = 10
+    num_hidden_neurons = [
+         [50],
+         [100],
+         [500],
+         [1000],
+         [20, 20],
+         [40, 40],
+         [60, 60],
+         [80, 80],
+        [10, 10, 10],
+        [20, 20, 20],
+        [40, 40, 40],
+        [60, 60, 60],
+        [10, 10, 10, 10, 10],
+        [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],]
+    
+    for i in range(len(num_hidden_neurons)):
+        print(i)
+        print(num_hidden_neurons[i]) 
+        G_dnn, XX, TT, diffNNanalytic, G_analytic = NNSolver(x0,L,Nx,t0,t1,Nt,i,num_hidden_neurons[i])
 
 
 #######    Explicit forward scheme solver #######
@@ -205,16 +240,16 @@ def main():
 #
 ##################################################
 
-    diffNNexplicit = np.abs(u - G_dnn)
-    diffExplicitAnalytic = np.abs(u - G_analytic) 
+    #diffNNexplicit = np.abs(u - G_dnn)
+    #diffExplicitAnalytic = np.abs(u - G_analytic) 
 
 
-    np.save('XX.npy', XX)
-    np.save('TT.npy', TT)
-    np.save('analytic.npy', G_analytic)
-    np.save('diffNNanalytic.npy', diffNNanalytic)
-    np.save('diffNNexplicit.npy', diffNNexplicit)
-    np.save('diffExplicitAnalytic.npy', diffExplicitAnalytic)
+    #np.save('XX.npy', XX)
+    #np.save('TT.npy', TT)
+    #np.save('analytic.npy', G_analytic)
+    #np.save('diffNNanalytic.npy', diffNNanalytic)
+    #np.save('diffNNexplicit.npy', diffNNexplicit)
+    #np.save('diffExplicitAnalytic.npy', diffExplicitAnalytic)
 
 
     #MakePlots(XX, TT, G_dnn, G_analytic, u, diffNNanalytic, diffNNexplicit, diffExplicitAnalytic)
