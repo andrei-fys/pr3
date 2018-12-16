@@ -173,33 +173,37 @@ def main():
     Nt = 200
  
     G_dnn, XX, TT, diffNNanalytic, G_analytic = NNSolver(x0,L,Nx,t0,t1,Nt)
-###################################################
-    # Number of integration points along x-axis
-    #N       =   10
-    # Spatial step length
-    dx = 1/float(Nx-1)
-    #print("dx", dx)
-    # Step length in time
-    #dt      =   0.001
-    dt      =  t1/float(Nt)
-    print("dt", dt)
-    print("convergence", (dt/(dx**2)))
-    if (dt/(dx**2) > 0.5):
-        print("Convergence does not work!!!")
-        exit(0)
-    u = np.zeros((Nt,Nx),np.double)
-    #print(np.shape(u))
-    (x,dx) = np.linspace (0,1,Nx, retstep=True)
-    #print("linspace dx", dx)
-    #print("X", x)
-    alpha = dt/(dx**2)
-    #Initial codition
-    u[0,:] = g(x)
-    u[0,0] = u[0,Nx-1] = 0.0 #Implement boundaries rigidly
-    ExplicitSolver(alpha,u,Nx-2,Nt)
-    #print(u)
-    np.save('euler.npy', u)
 
+
+#######    Explicit forward scheme solver #######
+#
+#    # Number of integration points along x-axis
+#    #N       =   10
+#    # Spatial step length
+#    dx = 1/float(Nx-1)
+#    #print("dx", dx)
+#    # Step length in time
+#    #dt      =   0.001
+#    dt      =  t1/float(Nt)
+#    print("dt", dt)
+#    print("convergence", (dt/(dx**2)))
+#    if (dt/(dx**2) > 0.5):
+#        print("Convergence does not work!!!")
+#        exit(0)
+#    u = np.zeros((Nt,Nx),np.double)
+#    #print(np.shape(u))
+#    (x,dx) = np.linspace (0,1,Nx, retstep=True)
+#    #print("linspace dx", dx)
+#    #print("X", x)
+#    alpha = dt/(dx**2)
+#    #Initial codition
+#    u[0,:] = g(x)
+#    u[0,0] = u[0,Nx-1] = 0.0 #Implement boundaries rigidly
+#    ExplicitSolver(alpha,u,Nx-2,Nt)
+#    #print(u)
+#    np.save('euler.npy', u)
+#
+##################################################
 
     diffNNexplicit = np.abs(u - G_dnn)
     diffExplicitAnalytic = np.abs(u - G_analytic) 
